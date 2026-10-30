@@ -1,37 +1,36 @@
-
 import 'package:flutter/material.dart';
+import 'theme/app_theme.dart';
+import 'services/auth_service.dart';
+import 'services/cart_service.dart';
+import 'services/favorites_service.dart';
 import 'pages/login.dart';
 import 'pages/registro.dart';
-import 'pages/home.dart';
-import 'pages/compras.dart';
 import 'pages/recuperar_password.dart';
+import 'pages/main_shell.dart';
 
-void main() {
-  runApp(MainApp());
+final cartService = CartService();
+final favoritesService = FavoritesService();
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AuthService.init();
+  runApp(const MainApp());
 }
 
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Mi Tienda',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
-        ),
-        scaffoldBackgroundColor: Color(0xFFF5F6FA),
-      ),
-      initialRoute: '/login',
+      title: 'ShopNow',
+      theme: AppTheme.light(),
+      initialRoute: AuthService.currentUser == null ? '/login' : '/home',
       routes: {
-        '/login': (context) => LoginPage(),
-        '/registro': (context) => RegistroPage(),
-        '/home': (context) => CatalogPage(),
-        '/compras': (context) => ComprasPage(),
-        '/recuperar-password': (context) => RecuperarPasswordPage(),
+        '/login': (context) => const LoginPage(),
+        '/registro': (context) => const RegistroPage(),
+        '/recuperar-password': (context) => const RecuperarPasswordPage(),
+        '/home': (context) => const MainShell(),
       },
     );
   }
