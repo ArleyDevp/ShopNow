@@ -1,6 +1,10 @@
-
 import 'package:flutter/material.dart';
+import '../core/routes/app_routes.dart';
+import '../core/theme/app_colors.dart';
+import '../core/theme/app_text.dart';
+import '../core/widgets/primary_button.dart';
 import '../carrito.dart';
+import '../state/favoritos_store.dart';
 
 class ProductoPage extends StatefulWidget {
   final Map<String, dynamic> producto;
@@ -33,11 +37,13 @@ class _ProductoPageState extends State<ProductoPage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Producto agregado al carrito'),
+        content: const Text('Producto agregado al carrito'),
+        backgroundColor: AppColors.success,
         action: SnackBarAction(
           label: 'Ver carrito',
+          textColor: Colors.white,
           onPressed: () {
-            Navigator.pushNamed(context, '/compras');
+            Navigator.pushNamed(context, AppRoutes.compras);
           },
         ),
       ),
@@ -47,94 +53,160 @@ class _ProductoPageState extends State<ProductoPage> {
   @override
   Widget build(BuildContext context) {
     final producto = widget.producto;
+    final nombre = producto['nombre'].toString();
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Detalle del producto'),
+        backgroundColor: Colors.white,
+        title: const Text('Detalle del producto'),
+        actions: [
+          AnimatedBuilder(
+            animation: favoritosStore,
+            builder: (context, _) {
+              final esFav = favoritosStore.esFavorito(nombre);
+              return IconButton(
+                tooltip: 'Favorito',
+                onPressed: () => favoritosStore.alternar(nombre),
+                icon: Icon(
+                  esFav
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  color: esFav ? AppColors.coral : AppColors.text,
+                ),
+              );
+            },
+          ),
+        ],
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(24),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Center(
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 650),
+            constraints: const BoxConstraints(maxWidth: 650),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Container(
-                  height: 260,
+                  height: 280,
                   decoration: BoxDecoration(
-                    color: Colors.indigo.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(20),
+                    gradient: const LinearGradient(
+                      colors: [AppColors.coralPale, AppColors.creamDeep],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(28),
                   ),
                   child: Icon(
                     producto['icono'] as IconData,
-                    size: 120,
-                    color: Colors.indigo,
+                    size: 140,
+                    color: AppColors.coral,
                   ),
                 ),
-                SizedBox(height: 24),
+                const SizedBox(height: 20),
                 Text(
                   producto['categoria'].toString(),
-                  style: TextStyle(color: Colors.grey),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  producto['nombre'].toString(),
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+                  style: const TextStyle(
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
                   ),
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 6),
+                Text(
+                  nombre,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.text,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 10),
                 Text(
                   _precio(producto['precio'] as num),
-                  style: TextStyle(
-                    fontSize: 25,
-                    color: Colors.indigo,
-                    fontWeight: FontWeight.bold,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    color: AppColors.coral,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 16),
                 Text(
                   producto['descripcion'].toString(),
-                  style: TextStyle(fontSize: 16),
+                  style: AppText.body,
                 ),
-                SizedBox(height: 28),
+                const SizedBox(height: 24),
                 Text(
                   'Cantidad',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppText.title,
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Row(
                   children: [
-                    IconButton(
-                      onPressed: cantidad > 1
-                          ? () => setState(() => cantidad--)
-                          : null,
-                      icon: Icon(Icons.remove_circle_outline),
+                    _QtyButton(
+                      icon: Icons.remove_rounded,
+                      enabled: cantidad > 1,
+                      onPressed: () => setState(() => cantidad--),
                     ),
-                    Text(
-                      '$cantidad',
-                      style: TextStyle(fontSize: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      child: Text(
+                        '$cantidad',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
-                    IconButton(
+                    _QtyButton(
+                      icon: Icons.add_rounded,
                       onPressed: () => setState(() => cantidad++),
-                      icon: Icon(Icons.add_circle_outline),
                     ),
                   ],
                 ),
-                SizedBox(height: 20),
-                FilledButton.icon(
+                const SizedBox(height: 24),
+                PrimaryButton(
+                  label: 'Agregar al carrito',
+                  icon: Icons.shopping_cart_rounded,
                   onPressed: _agregarAlCarrito,
-                  icon: Icon(Icons.shopping_cart),
-                  label: Text('Agregar al carrito'),
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QtyButton extends StatelessWidget {
+  const _QtyButton({
+    required this.icon,
+    required this.onPressed,
+    this.enabled = true,
+  });
+
+  final IconData icon;
+  final VoidCallback onPressed;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: enabled ? onPressed : null,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: enabled ? AppColors.background : AppColors.border,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Icon(
+          icon,
+          color: enabled ? AppColors.text : AppColors.textMuted,
         ),
       ),
     );
