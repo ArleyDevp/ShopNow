@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../core/theme/app_colors.dart';
 import '../core/widgets/shopnow_logo.dart';
 
@@ -10,16 +11,11 @@ class RegistroPage extends StatefulWidget {
 }
 
 class _RegistroPageState extends State<RegistroPage> {
-  final _form = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
 
   final _nombre = TextEditingController();
   final _correo = TextEditingController();
   final _password = TextEditingController();
-
-  // Campos extra del flujo original (no visibles en el mockup de paso 1).
-  final _apellido = TextEditingController();
-  final _usuario = TextEditingController();
-  final _confirmar = TextEditingController();
 
   bool _mostrarPassword = false;
   bool _aceptaTerminos = false;
@@ -30,9 +26,6 @@ class _RegistroPageState extends State<RegistroPage> {
     _nombre.dispose();
     _correo.dispose();
     _password.dispose();
-    _apellido.dispose();
-    _usuario.dispose();
-    _confirmar.dispose();
     super.dispose();
   }
 
@@ -62,26 +55,6 @@ class _RegistroPageState extends State<RegistroPage> {
     );
     Navigator.pop(context);
   }
-
-  // ==========================================
-  // LIBERAR CONTROLADORES
-  // ==========================================
-
-  @override
-  void dispose() {
-    _nombre.dispose();
-    _apellidos.dispose();
-    _username.dispose();
-    _email.dispose();
-    _pass.dispose();
-    _pass2.dispose();
-
-    super.dispose();
-  }
-
-  // ==========================================
-  // INTERFAZ
-  // ==========================================
 
   @override
   Widget build(BuildContext context) {
@@ -115,17 +88,6 @@ class _RegistroPageState extends State<RegistroPage> {
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) {
-                          return 'Confirmación obligatoria';
-                        }
-
-                        if (v != _pass.text) {
-                          return 'Las contraseñas no coinciden';
-                        }
-
-                        return null;
-                      },
                     ),
                   ),
                 ],
@@ -192,9 +154,7 @@ class _RegistroPageState extends State<RegistroPage> {
                 width: double.infinity,
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(30),
-                  ),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                 ),
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(28, 26, 28, 20),
@@ -255,10 +215,7 @@ class _RegistroPageState extends State<RegistroPage> {
                           controller: _nombre,
                           decoration: const InputDecoration(
                             hintText: '¿Cómo te llamas?',
-                            prefixIcon: Icon(
-                              Icons.person_outline,
-                              size: 20,
-                            ),
+                            prefixIcon: Icon(Icons.person_outline, size: 20),
                           ),
                           validator: (v) => (v == null || v.trim().isEmpty)
                               ? 'Ingresa tu nombre'
@@ -279,18 +236,14 @@ class _RegistroPageState extends State<RegistroPage> {
                           keyboardType: TextInputType.emailAddress,
                           decoration: const InputDecoration(
                             hintText: 'nombre@correo.com',
-                            prefixIcon: Icon(
-                              Icons.email_outlined,
-                              size: 20,
-                            ),
+                            prefixIcon: Icon(Icons.email_outlined, size: 20),
                           ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return 'Ingresa tu correo';
                             }
-                            if (!RegExp(
-                              r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-                            ).hasMatch(value.trim())) {
+                            if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+                                .hasMatch(value.trim())) {
                               return 'Correo no válido';
                             }
                             return null;
@@ -342,9 +295,8 @@ class _RegistroPageState extends State<RegistroPage> {
                           children: [
                             Checkbox(
                               value: _aceptaTerminos,
-                              onChanged: (v) => setState(
-                                () => _aceptaTerminos = v ?? false,
-                              ),
+                              onChanged: (v) =>
+                                  setState(() => _aceptaTerminos = v ?? false),
                               activeColor: AppColors.purple,
                             ),
                             Expanded(
@@ -371,9 +323,7 @@ class _RegistroPageState extends State<RegistroPage> {
                               ),
                             ),
                             child: Text(
-                              _cargando
-                                  ? 'Creando...'
-                                  : 'Crear mi cuenta  →',
+                              _cargando ? 'Creando...' : 'Crear mi cuenta  →',
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,

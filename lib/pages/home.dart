@@ -1,32 +1,84 @@
 import 'package:flutter/material.dart';
+
 import '../core/routes/app_routes.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text.dart';
 import '../core/widgets/shopnow_logo.dart';
 import '../state/favoritos_store.dart';
 
-const _products = [
-  Product(id:'1', name:'Zapatillas Urban', category:'Moda', price:59.99, image:'https://picsum.photos/200?1', featured:true),
-  Product(id:'2', name:'Auriculares Pro', category:'Tech', price:89.99, image:'https://picsum.photos/200?2', featured:true),
-  Product(id:'3', name:'Mochila Travel', category:'Accesorios', price:39.99, image:'https://picsum.photos/200?3'),
-  Product(id:'4', name:'Reloj Smart', category:'Tech', price:129.99, image:'https://picsum.photos/200?4'),
+const _productos = [
+  {
+    'nombre': 'Audífonos Bluetooth',
+    'precio': 89900,
+    'categoria': 'Tecnología',
+    'icono': Icons.headphones,
+    'descripcion': 'Audífonos inalámbricos para escuchar música.',
+  },
+  {
+    'nombre': 'Reloj inteligente',
+    'precio': 129900,
+    'categoria': 'Tecnología',
+    'icono': Icons.watch,
+    'descripcion': 'Reloj inteligente para tus actividades diarias.',
+  },
+  {
+    'nombre': 'Mochila urbana',
+    'precio': 74900,
+    'categoria': 'Accesorios',
+    'icono': Icons.backpack,
+    'descripcion': 'Mochila práctica para estudiar y viajar.',
+  },
+  {
+    'nombre': 'Gorra deportiva',
+    'precio': 39900,
+    'categoria': 'Ropa',
+    'icono': Icons.checkroom,
+    'descripcion': 'Gorra cómoda para actividades al aire libre.',
+  },
+  {
+    'nombre': 'Camiseta casual',
+    'precio': 49900,
+    'categoria': 'Ropa',
+    'icono': Icons.dry_cleaning,
+    'descripcion': 'Camiseta para usar todos los días.',
+  },
+  {
+    'nombre': 'Gafas de sol',
+    'precio': 59900,
+    'categoria': 'Accesorios',
+    'icono': Icons.wb_sunny_outlined,
+    'descripcion': 'Gafas de sol con diseño moderno.',
+  },
 ];
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class CatalogPage extends StatefulWidget {
+  const CatalogPage({super.key});
+
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<CatalogPage> createState() => _CatalogPageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  String _q = '';
-  final String _cat = 'Todos';
+class _CatalogPageState extends State<CatalogPage> {
+  final _busqueda = TextEditingController();
+  String _categoria = 'Todos';
 
-  List<Product> get _filtered => _products.where((p) {
-    final okQ = _q.isEmpty || p.name.toLowerCase().contains(_q.toLowerCase());
-    final okC = _cat == 'Todos' || p.category == _cat;
-    return okQ && okC;
-  }).toList();
+  @override
+  void dispose() {
+    _busqueda.dispose();
+    super.dispose();
+  }
+
+  String _precio(num valor) {
+    final texto = valor.round().toString();
+    final resultado = StringBuffer();
+    for (var i = 0; i < texto.length; i++) {
+      if (i > 0 && (texto.length - i) % 3 == 0) {
+        resultado.write('.');
+      }
+      resultado.write(texto[i]);
+    }
+    return '\$$resultado';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,8 +94,7 @@ class _HomePageState extends State<HomePage> {
       final texto = _busqueda.text.toLowerCase().trim();
 
       return nombre.contains(texto) &&
-          (_categoria == 'Todos' ||
-              producto['categoria'] == _categoria);
+          (_categoria == 'Todos' || producto['categoria'] == _categoria);
     }).toList();
 
     return Scaffold(
@@ -84,15 +135,9 @@ class _HomePageState extends State<HomePage> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         children: [
-          Text(
-            'Buenos días, Arley',
-            style: AppText.headline,
-          ),
+          Text('Buenos días, Arley', style: AppText.headline),
           const SizedBox(height: 4),
-          Text(
-            'Encuentra tu próximo favorito.',
-            style: AppText.bodyMuted,
-          ),
+          Text('Encuentra tu próximo favorito.', style: AppText.bodyMuted),
           const SizedBox(height: 18),
           Container(
             decoration: BoxDecoration(
@@ -118,10 +163,7 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 18),
           _PromoCard(),
           const SizedBox(height: 22),
-          Text(
-            'Categorías',
-            style: AppText.title,
-          ),
+          Text('Categorías', style: AppText.title),
           const SizedBox(height: 12),
           SizedBox(
             height: 74,
@@ -181,15 +223,9 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 22),
           Row(
             children: [
-              Text(
-                'Elegidos para ti',
-                style: AppText.title,
-              ),
+              Text('Elegidos para ti', style: AppText.title),
               const Spacer(),
-              Text(
-                '${filtrados.length} productos',
-                style: AppText.bodyMuted,
-              ),
+              Text('${filtrados.length} productos', style: AppText.bodyMuted),
             ],
           ),
           const SizedBox(height: 12),
@@ -198,14 +234,13 @@ class _HomePageState extends State<HomePage> {
               final columnas = constraints.maxWidth >= 800
                   ? 4
                   : constraints.maxWidth >= 520
-                      ? 3
-                      : 2;
+                  ? 3
+                  : 2;
               return GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: filtrados.length,
-                gridDelegate:
-                    SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: columnas,
                   crossAxisSpacing: 14,
                   mainAxisSpacing: 14,
@@ -337,9 +372,7 @@ class _ProductoCard extends StatelessWidget {
     return AnimatedBuilder(
       animation: favoritosStore,
       builder: (context, _) {
-        final esFav = favoritosStore.esFavorito(
-          producto['nombre'].toString(),
-        );
+        final esFav = favoritosStore.esFavorito(producto['nombre'].toString());
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -384,8 +417,7 @@ class _ProductoCard extends StatelessWidget {
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color:
-                                        Colors.black.withValues(alpha: 0.08),
+                                    color: Colors.black.withValues(alpha: 0.08),
                                     blurRadius: 6,
                                   ),
                                 ],
@@ -440,18 +472,5 @@ class _ProductoCard extends StatelessWidget {
         );
       },
     );
-  }
-}
-
-class _Cat extends StatelessWidget {
-  final IconData icon; final String label; final Color bg;
-  const _Cat({required this.icon, required this.label, required this.bg});
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: Column(children: [
-      Container(width: 64, height: 64, decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16)), child: Icon(icon, color: AppColors.textDark)),
-      const SizedBox(height: 4),
-      Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textDark)),
-    ])));
   }
 }

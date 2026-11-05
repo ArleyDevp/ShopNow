@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'theme/app_theme.dart';
 import 'services/auth_service.dart';
 import 'services/cart_service.dart';
@@ -14,8 +14,9 @@ final favoritesService = FavoritesService();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
-  await AuthService.init();
+  if (AuthService.hasConfiguration) {
+    await AuthService.init();
+  }
   runApp(const MainApp());
 }
 
