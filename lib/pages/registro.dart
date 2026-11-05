@@ -10,7 +10,8 @@ class RegistroPage extends StatefulWidget {
 }
 
 class _RegistroPageState extends State<RegistroPage> {
-  final _formKey = GlobalKey<FormState>();
+  final _form = GlobalKey<FormState>();
+
   final _nombre = TextEditingController();
   final _correo = TextEditingController();
   final _password = TextEditingController();
@@ -62,6 +63,26 @@ class _RegistroPageState extends State<RegistroPage> {
     Navigator.pop(context);
   }
 
+  // ==========================================
+  // LIBERAR CONTROLADORES
+  // ==========================================
+
+  @override
+  void dispose() {
+    _nombre.dispose();
+    _apellidos.dispose();
+    _username.dispose();
+    _email.dispose();
+    _pass.dispose();
+    _pass2.dispose();
+
+    super.dispose();
+  }
+
+  // ==========================================
+  // INTERFAZ
+  // ==========================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -94,6 +115,17 @@ class _RegistroPageState extends State<RegistroPage> {
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) {
+                          return 'Confirmación obligatoria';
+                        }
+
+                        if (v != _pass.text) {
+                          return 'Las contraseñas no coinciden';
+                        }
+
+                        return null;
+                      },
                     ),
                   ),
                 ],

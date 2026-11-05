@@ -5,81 +5,28 @@ import '../core/theme/app_text.dart';
 import '../core/widgets/shopnow_logo.dart';
 import '../state/favoritos_store.dart';
 
-class CatalogPage extends StatefulWidget {
-  const CatalogPage({super.key});
+const _products = [
+  Product(id:'1', name:'Zapatillas Urban', category:'Moda', price:59.99, image:'https://picsum.photos/200?1', featured:true),
+  Product(id:'2', name:'Auriculares Pro', category:'Tech', price:89.99, image:'https://picsum.photos/200?2', featured:true),
+  Product(id:'3', name:'Mochila Travel', category:'Accesorios', price:39.99, image:'https://picsum.photos/200?3'),
+  Product(id:'4', name:'Reloj Smart', category:'Tech', price:129.99, image:'https://picsum.photos/200?4'),
+];
 
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
   @override
-  State<CatalogPage> createState() => _CatalogPageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _CatalogPageState extends State<CatalogPage> {
-  final _busqueda = TextEditingController();
-  String _categoria = 'Todos';
+class _HomePageState extends State<HomePage> {
+  String _q = '';
+  final String _cat = 'Todos';
 
-  final List<Map<String, dynamic>> _productos = [
-    {
-      'nombre': 'Audífonos Bluetooth',
-      'precio': 89900,
-      'categoria': 'Tecnología',
-      'icono': Icons.headphones,
-      'descripcion': 'Audífonos inalámbricos para escuchar música.',
-    },
-    {
-      'nombre': 'Reloj inteligente',
-      'precio': 129900,
-      'categoria': 'Tecnología',
-      'icono': Icons.watch,
-      'descripcion': 'Reloj inteligente para tus actividades diarias.',
-    },
-    {
-      'nombre': 'Mochila urbana',
-      'precio': 74900,
-      'categoria': 'Accesorios',
-      'icono': Icons.backpack,
-      'descripcion': 'Mochila práctica para estudiar y viajar.',
-    },
-    {
-      'nombre': 'Gorra deportiva',
-      'precio': 39900,
-      'categoria': 'Ropa',
-      'icono': Icons.checkroom,
-      'descripcion': 'Gorra cómoda para actividades al aire libre.',
-    },
-    {
-      'nombre': 'Camiseta casual',
-      'precio': 49900,
-      'categoria': 'Ropa',
-      'icono': Icons.dry_cleaning,
-      'descripcion': 'Camiseta para usar todos los días.',
-    },
-    {
-      'nombre': 'Gafas de sol',
-      'precio': 59900,
-      'categoria': 'Accesorios',
-      'icono': Icons.wb_sunny_outlined,
-      'descripcion': 'Gafas de sol con diseño moderno.',
-    },
-  ];
-
-  String _precio(num valor) {
-    final texto = valor.round().toString();
-    final resultado = StringBuffer();
-
-    for (int i = 0; i < texto.length; i++) {
-      if (i > 0 && (texto.length - i) % 3 == 0) {
-        resultado.write('.');
-      }
-      resultado.write(texto[i]);
-    }
-
-    return '\$$resultado';
-  }
-
-  @override
-  void dispose() {
-    _busqueda.dispose();
-    super.dispose();
-  }
+  List<Product> get _filtered => _products.where((p) {
+    final okQ = _q.isEmpty || p.name.toLowerCase().contains(_q.toLowerCase());
+    final okC = _cat == 'Todos' || p.category == _cat;
+    return okQ && okC;
+  }).toList();
 
   @override
   Widget build(BuildContext context) {
@@ -493,5 +440,18 @@ class _ProductoCard extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class _Cat extends StatelessWidget {
+  final IconData icon; final String label; final Color bg;
+  const _Cat({required this.icon, required this.label, required this.bg});
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: Column(children: [
+      Container(width: 64, height: 64, decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16)), child: Icon(icon, color: AppColors.textDark)),
+      const SizedBox(height: 4),
+      Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textDark)),
+    ])));
   }
 }

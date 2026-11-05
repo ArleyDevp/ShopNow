@@ -4,10 +4,8 @@ import '../core/widgets/shopnow_logo.dart';
 
 class RecuperarPasswordPage extends StatefulWidget {
   const RecuperarPasswordPage({super.key});
-
   @override
-  State<RecuperarPasswordPage> createState() =>
-      _RecuperarPasswordPageState();
+  State<RecuperarPasswordPage> createState() => _RecuperarPasswordPageState();
 }
 
 class _RecuperarPasswordPageState
