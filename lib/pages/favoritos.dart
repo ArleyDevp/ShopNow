@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../core/routes/app_routes.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text.dart';
@@ -93,9 +94,7 @@ class FavoritosPage extends StatelessWidget {
         builder: (context, _) {
           final nombres = favoritosStore.nombres;
           if (nombres.isEmpty) {
-            return _EmptyFavoritos(
-              onExplorar: onExplorar ?? () {},
-            );
+            return _EmptyFavoritos(onExplorar: onExplorar ?? () {});
           }
 
           final items = nombres
@@ -106,10 +105,7 @@ class FavoritosPage extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              Text(
-                '${items.length} productos guardados',
-                style: AppText.small,
-              ),
+              Text('${items.length} productos guardados', style: AppText.small),
               const SizedBox(height: 12),
               ...items.map((p) {
                 return Container(
@@ -119,46 +115,48 @@ class FavoritosPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: AppColors.border),
                   ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(12),
-                    leading: Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: AppColors.coralPale,
-                        borderRadius: BorderRadius.circular(14),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(12),
+                      leading: Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: AppColors.coralPale,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          p['icono'] as IconData,
+                          color: AppColors.coral,
+                          size: 28,
+                        ),
                       ),
-                      child: Icon(
-                        p['icono'] as IconData,
-                        color: AppColors.coral,
-                        size: 28,
-                      ),
-                    ),
-                    title: Text(
-                      p['nombre'].toString(),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '${p['categoria']}  ·  ${_precio(p['precio'] as num)}',
-                      style: AppText.small,
-                    ),
-                    trailing: IconButton(
-                      tooltip: 'Quitar de favoritos',
-                      onPressed: () => favoritosStore.alternar(
+                      title: Text(
                         p['nombre'].toString(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
                       ),
-                      icon: const Icon(
-                        Icons.favorite_rounded,
-                        color: AppColors.coral,
+                      subtitle: Text(
+                        '${p['categoria']}  ·  ${_precio(p['precio'] as num)}',
+                        style: AppText.small,
                       ),
-                    ),
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      AppRoutes.producto,
-                      arguments: p,
+                      trailing: IconButton(
+                        tooltip: 'Quitar de favoritos',
+                        onPressed: () =>
+                            favoritosStore.alternar(p['nombre'].toString()),
+                        icon: const Icon(
+                          Icons.favorite_rounded,
+                          color: AppColors.coral,
+                        ),
+                      ),
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        AppRoutes.producto,
+                        arguments: p,
+                      ),
                     ),
                   ),
                 );

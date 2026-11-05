@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+
 import '../core/routes/app_routes.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text.dart';
 import '../core/widgets/shopnow_logo.dart';
+import '../services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -30,22 +32,28 @@ class _LoginPageState extends State<LoginPage> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _cargando = true);
-    // TODO: conectar con el backend (POST /api/auth/login).
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-    setState(() => _cargando = false);
-
     final email = _emailController.text.trim();
     final pass = _passwordController.text;
-    if (email == 'emerson@gmail.com' && pass == 'Arley123') {
-      Navigator.pushReplacementNamed(context, AppRoutes.shell);
-    } else {
+
+    try {
+      if (AuthService.configured) {
+        await AuthService.signIn(email, pass);
+      } else if (email != 'emerson@gmail.com' || pass != 'Arley123') {
+        throw StateError('Correo o contraseña incorrectos.');
+      }
+
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, AppRoutes.home);
+    } catch (error) {
+      if (!mounted) return;
+      final mensaje = error is StateError
+          ? error.message
+          : 'No se pudo iniciar sesión: $error';
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Correo o contraseña incorrectos.'),
-          backgroundColor: AppColors.danger,
-        ),
+        SnackBar(content: Text(mensaje), backgroundColor: AppColors.danger),
       );
+    } finally {
+      if (mounted) setState(() => _cargando = false);
     }
   }
 
@@ -184,9 +192,7 @@ class _LoginPageState extends State<LoginPage> {
                 width: double.infinity,
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(30),
-                  ),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                 ),
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(28, 26, 28, 20),
@@ -273,9 +279,8 @@ class _LoginPageState extends State<LoginPage> {
                             if (value == null || value.trim().isEmpty) {
                               return 'Ingresa tu correo electrónico';
                             }
-                            if (!RegExp(
-                              r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-                            ).hasMatch(value.trim())) {
+                            if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+                                .hasMatch(value.trim())) {
                               return 'Ingresa un correo válido';
                             }
                             return null;
@@ -351,9 +356,7 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                             child: Text(
-                              _cargando
-                                  ? 'Entrando...'
-                                  : 'Entrar a ShopNow  →',
+                              _cargando ? 'Entrando...' : 'Entrar a ShopNow  →',
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,

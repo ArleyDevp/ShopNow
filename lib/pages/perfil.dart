@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../core/routes/app_routes.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text.dart';
@@ -57,10 +58,7 @@ class PerfilPage extends StatelessWidget {
                     children: [
                       Text('Arley Ladino', style: AppText.title),
                       const SizedBox(height: 2),
-                      Text(
-                        'emerson@gmail.com',
-                        style: AppText.small,
-                      ),
+                      Text('emerson@gmail.com', style: AppText.small),
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -85,8 +83,10 @@ class PerfilPage extends StatelessWidget {
                 ),
                 IconButton(
                   onPressed: () {},
-                  icon: const Icon(Icons.edit_outlined,
-                      color: AppColors.textMuted),
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ],
             ),
@@ -140,9 +140,7 @@ class PerfilPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          Center(
-            child: const ShopNowLogo(size: 32, showText: true),
-          ),
+          Center(child: const ShopNowLogo(size: 32, showText: true)),
         ],
       ),
     );
@@ -169,28 +167,28 @@ class _MenuItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.border),
       ),
-      child: ListTile(
-        leading: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: AppColors.coralPale,
-            borderRadius: BorderRadius.circular(12),
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          leading: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppColors.coralPale,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: AppColors.coral, size: 20),
           ),
-          child: Icon(icon, color: AppColors.coral, size: 20),
-        ),
-        title: Text(
-          label,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
+          title: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
+          trailing: const Icon(
+            Icons.chevron_right_rounded,
+            color: AppColors.textMuted,
+          ),
+          onTap: onTap,
         ),
-        trailing: const Icon(
-          Icons.chevron_right_rounded,
-          color: AppColors.textMuted,
-        ),
-        onTap: onTap,
       ),
     );
   }
