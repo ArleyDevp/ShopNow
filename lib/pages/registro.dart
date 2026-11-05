@@ -1,12 +1,6 @@
-
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
-
-import '../theme/app_colors.dart';
-import '../widgets/app_text_field.dart';
+import '../core/theme/app_colors.dart';
+import '../core/widgets/shopnow_logo.dart';
 
 class RegistroPage extends StatefulWidget {
   const RegistroPage({super.key});
@@ -19,212 +13,54 @@ class _RegistroPageState extends State<RegistroPage> {
   final _form = GlobalKey<FormState>();
 
   final _nombre = TextEditingController();
-  final _apellidos = TextEditingController();
-  final _username = TextEditingController();
-  final _email = TextEditingController();
-  final _pass = TextEditingController();
-  final _pass2 = TextEditingController();
+  final _correo = TextEditingController();
+  final _password = TextEditingController();
 
-  bool _showPass = false;
-  bool _showPass2 = false;
-  bool _terms = false;
-  bool _loading = false;
+  // Campos extra del flujo original (no visibles en el mockup de paso 1).
+  final _apellido = TextEditingController();
+  final _usuario = TextEditingController();
+  final _confirmar = TextEditingController();
 
-  String? _error;
-  String? _usernameError;
+  bool _mostrarPassword = false;
+  bool _aceptaTerminos = false;
+  bool _cargando = false;
 
-  String get _baseUrl =>
-      dotenv.env['BACKEND_URL'] ?? 'http://localhost:3000';
+  @override
+  void dispose() {
+    _nombre.dispose();
+    _correo.dispose();
+    _password.dispose();
+    _apellido.dispose();
+    _usuario.dispose();
+    _confirmar.dispose();
+    super.dispose();
+  }
 
-  // ==========================================
-  // VERIFICAR DISPONIBILIDAD DEL USERNAME
-  // ==========================================
-
-  Future<bool> _checkUsername() async {
-    final username = _username.text.trim();
-
-    final uri = Uri.parse(
-      '$_baseUrl/api/auth/check-username',
-    ).replace(
-      queryParameters: {
-        'username': username,
-      },
-    );
-
-    final response = await http.get(uri).timeout(
-          const Duration(seconds: 15),
-        );
-
-    if (response.statusCode != 200) {
-      throw Exception(
-        'No se pudo verificar el nombre de usuario.',
+  Future<void> _registrar() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (!_aceptaTerminos) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes aceptar los términos y condiciones.'),
+          backgroundColor: AppColors.danger,
+        ),
       );
-    }
-
-    final data = jsonDecode(response.body);
-
-    return data['available'] == true;
-  }
-
-  // ==========================================
-  // REGISTRAR USUARIO EN SUPABASE
-  // ==========================================
-
-  Future<void> _submit() async {
-    if (_loading) return;
-
-    FocusScope.of(context).unfocus();
-
-    if (!_form.currentState!.validate()) {
       return;
     }
 
-    if (!_terms) {
-      setState(() {
-        _error = 'Debes aceptar los términos y condiciones.';
-      });
-      return;
-    }
+    setState(() => _cargando = true);
+    // TODO: conectar con el backend (POST /api/auth/register).
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+    setState(() => _cargando = false);
 
-    setState(() {
-      _loading = true;
-      _error = null;
-      _usernameError = null;
-    });
-
-    try {
-      // 1. Verificar username
-
-      final available = await _checkUsername();
-
-      if (!mounted) return;
-
-      if (!available) {
-        setState(() {
-          _usernameError =
-              'Este nombre de usuario ya está en uso.';
-        });
-        return;
-      }
-
-      // 2. Enviar datos al backend
-
-      final response = await http
-          .post(
-            Uri.parse('$_baseUrl/api/auth/register'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({
-              'nombre': _nombre.text.trim(),
-              'apellidos': _apellidos.text.trim(),
-              'usuario': _username.text.trim(),
-              'email': _email.text.trim().toLowerCase(),
-              'password': _pass.text,
-              'confirmarPassword': _pass2.text,
-            }),
-          )
-          .timeout(
-            const Duration(seconds: 30),
-          );
-
-      final data = jsonDecode(response.body);
-
-      // 3. Registro exitoso
-
-      if (response.statusCode == 201) {
-        if (!mounted) return;
-
-        final mensaje = data['message'] ??
-            'Cuenta creada correctamente.';
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(mensaje),
-            duration: const Duration(seconds: 5),
-            backgroundColor: AppColors.primary,
-          ),
-        );
-
-        Navigator.pushReplacementNamed(
-          context,
-          '/login',
-        );
-
-        return;
-      }
-
-      // 4. Errores del servidor
-
-      if (response.statusCode == 409) {
-        final mensaje = data['error'] ??
-            'El usuario o correo ya está registrado.';
-
-        setState(() {
-          _error = mensaje;
-
-          if (mensaje.toLowerCase().contains('username')) {
-            _usernameError = mensaje;
-          }
-        });
-
-        return;
-      }
-
-      setState(() {
-        _error = data['error'] ??
-            'No se pudo completar el registro.';
-      });
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        _error = e.toString().replaceFirst(
-              'Exception: ',
-              '',
-            );
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
-    }
-  }
-
-  // ==========================================
-  // CAMPOS PERSONALIZADOS
-  // ==========================================
-
-  Widget _field(
-    TextEditingController controller,
-    String hint,
-    IconData icon, {
-    bool obscure = false,
-    Widget? suffix,
-    TextInputType? kb,
-    String? Function(String?)? validator,
-  }) {
-    return AppTextField(
-      controller: controller,
-      hint: hint,
-      obscure: obscure,
-      keyboardType: kb,
-      validator: validator,
-      suffix: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: AppColors.textSecondary,
-            size: 20,
-          ),
-          ?suffix,
-        ],
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Cuenta creada. Inicia sesión para continuar.'),
+        backgroundColor: AppColors.success,
       ),
     );
+    Navigator.pop(context);
   }
 
   // ==========================================
@@ -250,261 +86,34 @@ class _RegistroPageState extends State<RegistroPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.purple,
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 420,
-            ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 24,
-              ),
-              child: Form(
-                key: _form,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-
-                    // LOGO SHOPNOW
-
-                    Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: AppColors.salmonLight,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.storefront,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        RichText(
-                          text: const TextSpan(
-                            children: [
-                              TextSpan(
-                                text: 'Shop',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textDark,
-                                ),
-                              ),
-                              TextSpan(
-                                text: 'Now',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
+              child: Row(
+                children: [
+                  const ShopNowLogo(size: 38, showText: true),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
                     ),
-
-                    const SizedBox(height: 32),
-
-                    // TITULO
-
-                    const Text(
-                      'ÚNETE A LA COMUNIDAD',
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: const Text(
+                      '+12k vecinos',
                       style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
                         fontSize: 12,
-                        letterSpacing: 2,
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    const Text(
-                      'Crear cuenta',
-                      style: TextStyle(
-                        color: AppColors.textDark,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 30,
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    const Text(
-                      'Compra, guarda y encuentra justo\n'
-                      'lo que necesitas.',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 14,
-                        height: 1.4,
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // NOMBRE
-
-                    _field(
-                      _nombre,
-                      'Nombre',
-                      Icons.person_outline,
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) {
-                          return 'Nombre obligatorio';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // APELLIDOS
-
-                    _field(
-                      _apellidos,
-                      'Apellidos',
-                      Icons.badge_outlined,
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) {
-                          return 'Apellidos obligatorios';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // USERNAME
-
-                    _field(
-                      _username,
-                      'Username',
-                      Icons.account_circle_outlined,
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) {
-                          return 'Username obligatorio';
-                        }
-
-                        final username = v.trim();
-
-                        if (username.length < 3 ||
-                            username.length > 30) {
-                          return 'Entre 3 y 30 caracteres';
-                        }
-
-                        if (!RegExp(
-                          r'^[a-zA-Z0-9_.-]+$',
-                        ).hasMatch(username)) {
-                          return 'Solo letras, números, _, . y -';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    if (_usernameError != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          _usernameError!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-
-                    const SizedBox(height: 12),
-
-                    // CORREO ELECTRONICO
-
-                    _field(
-                      _email,
-                      'Correo electrónico',
-                      Icons.mail_outline,
-                      kb: TextInputType.emailAddress,
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) {
-                          return 'Correo obligatorio';
-                        }
-
-                        final email = v.trim();
-
-                        if (!RegExp(
-                          r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-                        ).hasMatch(email)) {
-                          return 'Formato de correo inválido';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // CONTRASEÑA
-
-                    _field(
-                      _pass,
-                      'Contraseña',
-                      Icons.lock_outline,
-                      obscure: !_showPass,
-                      suffix: IconButton(
-                        icon: Icon(
-                          _showPass
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: AppColors.textSecondary,
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _showPass = !_showPass;
-                          });
-                        },
-                      ),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) {
-                          return 'Contraseña obligatoria';
-                        }
-
-                        if (v.length < 8) {
-                          return 'Mínimo 8 caracteres';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // VERIFICAR CONTRASEÑA
-
-                    _field(
-                      _pass2,
-                      'Verificar contraseña',
-                      Icons.lock_outline,
-                      obscure: !_showPass2,
-                      suffix: IconButton(
-                        icon: Icon(
-                          _showPass2
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: AppColors.textSecondary,
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _showPass2 = !_showPass2;
-                          });
-                        },
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
                       ),
                       validator: (v) {
                         if (v == null || v.isEmpty) {
@@ -518,133 +127,352 @@ class _RegistroPageState extends State<RegistroPage> {
                         return null;
                       },
                     ),
-
-                    const SizedBox(height: 16),
-
-                    // TERMINOS Y CONDICIONES
-
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Checkbox(
-                          value: _terms,
-                          onChanged: _loading
-                              ? null
-                              : (v) {
-                                  setState(() {
-                                    _terms = v ?? false;
-                                    _error = null;
-                                  });
-                                },
-                          activeColor: AppColors.primary,
+                        const Text(
+                          'HAZTE PARTE',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white70,
+                            letterSpacing: 1.2,
+                          ),
                         ),
-                        const Expanded(
-                          child: Text(
-                            'Acepto los Términos y condiciones '
-                            'y la Política de privacidad.',
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Tu próxima joya\nestá cerca.',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            height: 0.98,
+                            letterSpacing: -0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.lime,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            'Tu mercado te espera',
                             style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 13,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.text,
                             ),
                           ),
                         ),
                       ],
                     ),
-
-                    // MENSAJES DE ERROR
-
-                    if (_error != null)
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          bottom: 8,
+                  ),
+                  const SizedBox(width: 12),
+                  _AvatarStack(),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(30),
+                  ),
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(28, 26, 28, 20),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'PASO 01',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textMuted,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    'Crea tu perfil',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.text,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              width: 36,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: AppColors.purple,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ],
                         ),
-                        child: Text(
-                          _error!,
-                          style: const TextStyle(
-                            color: Colors.red,
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Tu nombre',
+                          style: TextStyle(
                             fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textMuted,
                           ),
                         ),
-                      ),
-
-                    const SizedBox(height: 8),
-
-                    // BOTON REGISTRARSE
-
-                    SizedBox(
-                      height: 48,
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          elevation: 2,
-                          shadowColor: AppColors.primary.withValues(
-                            alpha: 0.3,
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: _nombre,
+                          decoration: const InputDecoration(
+                            hintText: '¿Cómo te llamas?',
+                            prefixIcon: Icon(
+                              Icons.person_outline,
+                              size: 20,
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          validator: (v) => (v == null || v.trim().isEmpty)
+                              ? 'Ingresa tu nombre'
+                              : null,
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Tu correo',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textMuted,
                           ),
                         ),
-                        onPressed: _loading ? null : _submit,
-                        child: _loading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                'Registrarse',
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: _correo,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            hintText: 'nombre@correo.com',
+                            prefixIcon: Icon(
+                              Icons.email_outlined,
+                              size: 20,
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Ingresa tu correo';
+                            }
+                            if (!RegExp(
+                              r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                            ).hasMatch(value.trim())) {
+                              return 'Correo no válido';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Crea una contraseña',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: _password,
+                          obscureText: !_mostrarPassword,
+                          decoration: InputDecoration(
+                            hintText: 'Mínimo 8 caracteres',
+                            prefixIcon: const Icon(
+                              Icons.lock_outline,
+                              size: 20,
+                            ),
+                            suffixIcon: IconButton(
+                              onPressed: () => setState(
+                                () => _mostrarPassword = !_mostrarPassword,
+                              ),
+                              icon: Icon(
+                                _mostrarPassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Crea una contraseña';
+                            }
+                            if (value.length < 8) {
+                              return 'Usa al menos 8 caracteres';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: _aceptaTerminos,
+                              onChanged: (v) => setState(
+                                () => _aceptaTerminos = v ?? false,
+                              ),
+                              activeColor: AppColors.purple,
+                            ),
+                            Expanded(
+                              child: Text(
+                                'Acepto los Términos y la Política de privacidad',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                  color: AppColors.textMuted,
                                 ),
                               ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // VOLVER AL LOGIN
-
-                    Center(
-                      child: GestureDetector(
-                        onTap: _loading
-                            ? null
-                            : () {
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  '/login',
-                                );
-                              },
-                        child: RichText(
-                          text: const TextSpan(
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          height: 54,
+                          child: ElevatedButton(
+                            onPressed: _cargando ? null : _registrar,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.purple,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: Text(
+                              _cargando
+                                  ? 'Creando...'
+                                  : 'Crear mi cuenta  →',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              TextSpan(
-                                text: '¿Ya tienes cuenta? ',
+                              Text(
+                                '¿Ya eres parte? ',
                                 style: TextStyle(
-                                  color: AppColors.textSecondary,
+                                  fontSize: 13,
+                                  color: AppColors.textMuted,
                                 ),
                               ),
-                              TextSpan(
-                                text: 'Inicia sesión',
-                                style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
+                              GestureDetector(
+                                onTap: () => Navigator.pop(context),
+                                child: const Text(
+                                  'Inicia sesión',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.purple,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AvatarStack extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 88,
+      height: 48,
+      child: Stack(
+        children: [
+          Positioned(
+            left: 0,
+            child: _Avatar(color: AppColors.lime, initials: 'MA'),
           ),
+          Positioned(
+            left: 26,
+            child: _Avatar(color: const Color(0xFF90CAF9), initials: 'JP'),
+          ),
+          Positioned(
+            left: 52,
+            child: _Avatar(color: const Color(0xFFF48FB1), initials: 'LU'),
+          ),
+          Positioned(
+            left: 78,
+            child: _Avatar(color: Colors.white, initials: '+'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Avatar extends StatelessWidget {
+  const _Avatar({required this.color, required this.initials});
+
+  final Color color;
+  final String initials;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: TextStyle(
+          color: color == Colors.white ? AppColors.purple : Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 11,
         ),
       ),
     );
