@@ -1,88 +1,229 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../models/product.dart';
-import '../main.dart' as m;
 
-const _all = [
-  Product(id:'1', name:'Zapatillas Urban', category:'Moda', price:59.99, image:'https://picsum.photos/200?1'),
-  Product(id:'2', name:'Auriculares Pro', category:'Tech', price:89.99, image:'https://picsum.photos/200?2'),
-  Product(id:'3', name:'Mochila Travel', category:'Accesorios', price:39.99, image:'https://picsum.photos/200?3'),
-  Product(id:'4', name:'Reloj Smart', category:'Tech', price:129.99, image:'https://picsum.photos/200?4'),
-];
+import '../core/routes/app_routes.dart';
+import '../core/theme/app_colors.dart';
+import '../core/theme/app_text.dart';
+import '../core/widgets/primary_button.dart';
+import '../state/favoritos_store.dart';
 
-class FavoritosPage extends StatefulWidget {
-  const FavoritosPage({super.key});
-  @override
-  State<FavoritosPage> createState() => _FavoritosPageState();
-}
+class FavoritosPage extends StatelessWidget {
+  const FavoritosPage({super.key, this.onExplorar});
 
-class _FavoritosPageState extends State<FavoritosPage> {
-  @override
-  void initState() { super.initState(); m.favoritesService.addListener(_r); m.cartService.addListener(_r); }
-  @override
-  void dispose() { m.favoritesService.removeListener(_r); m.cartService.removeListener(_r); super.dispose(); }
-  void _r() => setState(() {});
+  final VoidCallback? onExplorar;
+
+  static const _productos = [
+    {
+      'nombre': 'Audífonos Bluetooth',
+      'precio': 89900,
+      'categoria': 'Tecnología',
+      'icono': Icons.headphones,
+      'descripcion': 'Audífonos inalámbricos para escuchar música.',
+    },
+    {
+      'nombre': 'Reloj inteligente',
+      'precio': 129900,
+      'categoria': 'Tecnología',
+      'icono': Icons.watch,
+      'descripcion': 'Reloj inteligente para tus actividades diarias.',
+    },
+    {
+      'nombre': 'Mochila urbana',
+      'precio': 74900,
+      'categoria': 'Accesorios',
+      'icono': Icons.backpack,
+      'descripcion': 'Mochila práctica para estudiar y viajar.',
+    },
+    {
+      'nombre': 'Gorra deportiva',
+      'precio': 39900,
+      'categoria': 'Ropa',
+      'icono': Icons.checkroom,
+      'descripcion': 'Gorra cómoda para actividades al aire libre.',
+    },
+    {
+      'nombre': 'Camiseta casual',
+      'precio': 49900,
+      'categoria': 'Ropa',
+      'icono': Icons.dry_cleaning,
+      'descripcion': 'Camiseta para usar todos los días.',
+    },
+    {
+      'nombre': 'Gafas de sol',
+      'precio': 59900,
+      'categoria': 'Accesorios',
+      'icono': Icons.wb_sunny_outlined,
+      'descripcion': 'Gafas de sol con diseño moderno.',
+    },
+  ];
+
+  Map<String, dynamic>? _buscar(String nombre) {
+    for (final p in _productos) {
+      if (p['nombre'] == nombre) return p;
+    }
+    return null;
+  }
+
+  String _precio(num valor) {
+    final texto = valor.round().toString();
+    final resultado = StringBuffer();
+    for (int i = 0; i < texto.length; i++) {
+      if (i > 0 && (texto.length - i) % 3 == 0) {
+        resultado.write('.');
+      }
+      resultado.write(texto[i]);
+    }
+    return '\$$resultado';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final favs = m.favoritesService.filter(_all);
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(child: Column(children: [
-        Padding(padding: const EdgeInsets.all(16), child: Row(children: [
-          Container(width: 40, height: 40, decoration: BoxDecoration(color: AppColors.salmonLight, borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.storefront, color: AppColors.primary)),
-          const SizedBox(width: 8),
-          RichText(text: const TextSpan(children: [
-            TextSpan(text: 'Shop', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textDark)),
-            TextSpan(text: 'Now', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary)),
-          ])),
-          const Spacer(),
-          Container(width: 40, height: 40, decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)), child: const Icon(Icons.notifications_none, color: AppColors.textDark)),
-          const SizedBox(width: 8),
-          CircleAvatar(backgroundColor: AppColors.textDark, child: const Text('ML', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-        ])),
-        Expanded(child: favs.isEmpty ? _empty() : _grid(favs)),
-      ])),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        title: Row(
+          children: const [
+            Icon(Icons.favorite_rounded, color: AppColors.coral, size: 20),
+            SizedBox(width: 8),
+            Text('Tus favoritos'),
+          ],
+        ),
+      ),
+      body: AnimatedBuilder(
+        animation: favoritosStore,
+        builder: (context, _) {
+          final nombres = favoritosStore.nombres;
+          if (nombres.isEmpty) {
+            return _EmptyFavoritos(onExplorar: onExplorar ?? () {});
+          }
+
+          final items = nombres
+              .map(_buscar)
+              .whereType<Map<String, dynamic>>()
+              .toList();
+
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              Text('${items.length} productos guardados', style: AppText.small),
+              const SizedBox(height: 12),
+              ...items.map((p) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(12),
+                      leading: Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: AppColors.coralPale,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          p['icono'] as IconData,
+                          color: AppColors.coral,
+                          size: 28,
+                        ),
+                      ),
+                      title: Text(
+                        p['nombre'].toString(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${p['categoria']}  ·  ${_precio(p['precio'] as num)}',
+                        style: AppText.small,
+                      ),
+                      trailing: IconButton(
+                        tooltip: 'Quitar de favoritos',
+                        onPressed: () =>
+                            favoritosStore.alternar(p['nombre'].toString()),
+                        icon: const Icon(
+                          Icons.favorite_rounded,
+                          color: AppColors.coral,
+                        ),
+                      ),
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        AppRoutes.producto,
+                        arguments: p,
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          );
+        },
+      ),
     );
   }
+}
 
-  Widget _empty() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-    Container(width: 140, height: 140, decoration: BoxDecoration(color: AppColors.salmonLight, borderRadius: BorderRadius.circular(24)),
-      child: const Icon(Icons.favorite_border, size: 64, color: AppColors.primary)),
-    const SizedBox(height: 16),
-    const Text('SHOPNOW', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, letterSpacing: 2, fontWeight: FontWeight.w600)),
-    const SizedBox(height: 8),
-    const Text('Tus favoritos', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textDark)),
-    const SizedBox(height: 8),
-    const Text('Aquí guardamos todo lo que te encantó\npara que vuelvas cuando quieras.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary)),
-    const SizedBox(height: 24),
-    SizedBox(width: 200, child: ElevatedButton(onPressed: () {}, child: const Text('Explorar productos'))),
-  ]));
+class _EmptyFavoritos extends StatelessWidget {
+  const _EmptyFavoritos({required this.onExplorar});
 
-  Widget _grid(List<Product> favs) => Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    const Text('Mis favoritos', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textDark)),
-    Text('${favs.length} productos guardados', style: const TextStyle(color: AppColors.textSecondary)),
-    const SizedBox(height: 12),
-    Expanded(child: GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.72, crossAxisSpacing: 12, mainAxisSpacing: 12),
-      itemCount: favs.length,
-      itemBuilder: (ctx, i) {
-        final p = favs[i];
-        return Card(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), child: Padding(padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Stack(children: [
-            ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.network(p.image, height: 110, width: double.infinity, fit: BoxFit.cover)),
-            Positioned(top: 6, right: 6, child: GestureDetector(onTap: () => m.favoritesService.toggle(p), child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), child: const Icon(Icons.favorite, color: AppColors.primary, size: 18)))),
-          ]),
-          const SizedBox(height: 6),
-          Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-          Text(p.category, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-          Row(children: [
-            Text('\$${p.price.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-            const Spacer(),
-            IconButton(icon: const Icon(Icons.add_shopping_cart, size: 20), onPressed: () => m.cartService.add(p)),
-          ]),
-        ])));
-      },
-    )),
-  ]));
+  final VoidCallback onExplorar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                color: AppColors.rose,
+                borderRadius: BorderRadius.circular(36),
+              ),
+              child: const Icon(
+                Icons.favorite_rounded,
+                size: 64,
+                color: AppColors.coral,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Tus favoritos',
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: AppColors.text,
+                letterSpacing: -0.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Guarda los productos que amas y vuelve a ellos cuando quieras.',
+              textAlign: TextAlign.center,
+              style: AppText.bodyMuted,
+            ),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: 240,
+              child: PrimaryButton(
+                label: 'Explorar productos',
+                onPressed: onExplorar,
+                color: AppColors.coral,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
