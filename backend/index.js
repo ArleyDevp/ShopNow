@@ -1,5 +1,7 @@
 
+const path = require('path');
 require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') });
 
 const express = require('express');
 const cors = require('cors');
@@ -28,32 +30,29 @@ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const APP_REDIRECT_URL =
   process.env.APP_REDIRECT_URL || 'http://localhost:5000';
 
-if (!supabaseUrl || !anonKey || !serviceKey) {
-  console.error('Faltan variables de configuracion de Supabase.');
-  process.exit(1);
+let supabaseAuth = null;
+let supabaseAdmin = null;
+
+if (supabaseUrl && anonKey && serviceKey && /^https:\/\/[^/]+\.supabase\.co$/.test(supabaseUrl)) {
+  // Cliente para autenticacion de usuarios.
+  supabaseAuth = createClient(supabaseUrl, anonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
+  });
+
+  // Cliente administrativo.
+  // La clave secreta nunca debe salir de Express.
+  supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
+  });
+} else {
+  console.warn('Supabase no configurado: rutas legacy deshabilitadas.');
 }
-
-if (!/^https:\/\/[^/]+\.supabase\.co$/.test(supabaseUrl)) {
-  console.error('SUPABASE_URL no tiene un formato valido.');
-  process.exit(1);
-}
-
-// Cliente para autenticacion de usuarios.
-const supabaseAuth = createClient(supabaseUrl, anonKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false
-  }
-});
-
-// Cliente administrativo.
-// La clave secreta nunca debe salir de Express.
-const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false
-  }
-});
 
 // =====================================
 // MANEJO DE ERRORES
@@ -84,6 +83,9 @@ app.get('/', (req, res) => {
 // =====================================
 
 app.get('/api/health', async (req, res) => {
+  if (!supabaseAdmin) {
+    return res.status(503).json({ servidor: 'activo', baseDeDatos: 'no configurado' });
+  }
   try {
     const { error } = await supabaseAdmin
       .from('categorias')
@@ -163,6 +165,9 @@ app.get('/api/auth/check-username', async (req, res) => {
 // =====================================
 
 app.post('/api/auth/register', async (req, res) => {
+  if (!supabaseAdmin || !supabaseAuth) {
+    return res.status(503).json({ error: 'Supabase no configurado.' });
+  }
   try {
     const {
       nombre,
@@ -344,6 +349,63 @@ app.post('/api/auth/register', async (req, res) => {
     return res.status(500).json({
       error: 'Ocurrio un error interno al registrar la cuenta.'
     });
+  }
+});
+
+// =====================================
+// NEON AUTH (Managed Better Auth)
+// =====================================
+
+app.post('/api/auth/neon/signup', async (req, res) => {
+  try {
+    const { neonSignUp } = await import('./neonAuthRoute.mjs');
+    const result = await neonSignUp(req, res);
+    return result;
+  } catch (error) {
+    console.error('Error en Neon signup:', error.message);
+    return res.status(500).json({ error: 'No se pudo completar el registro con Neon Auth.' });
+  }
+});
+
+app.post('/api/auth/neon/signin', async (req, res) => {
+  try {
+    const { neonSignIn } = await import('./neonAuthRoute.mjs');
+    const result = await neonSignIn(req, res);
+    return result;
+  } catch (error) {
+    console.error('Error en Neon signin:', error.message);
+    return res.status(500).json({ error: 'No se pudo iniciar sesion con Neon Auth.' });
+  }
+});
+
+app.post('/api/auth/neon/update-user', async (req, res) => {
+  try {
+    const { neonUpdateUser } = await import('./neonAuthRoute.mjs');
+    return await neonUpdateUser(req, res);
+  } catch (error) {
+    console.error('Error actualizando usuario Neon:', error.message);
+    return res.status(500).json({ error: 'No se pudo actualizar el perfil.' });
+  }
+});
+
+app.get('/api/auth/neon/me', async (req, res) => {
+  try {
+    const { neonMe } = await import('./neonAuthRoute.mjs');
+    return await neonMe(req, res);
+  } catch (error) {
+    console.error('Error leyendo usuario Neon:', error.message);
+    return res.status(500).json({ error: 'No se pudo leer el usuario actual.' });
+  }
+});
+
+app.get('/api/products', async (req, res) => {
+  try {
+    const { fetchProducts } = await import('./neonProducts.mjs');
+    const products = await fetchProducts();
+    return res.json({ ok: true, products });
+  } catch (error) {
+    console.error('Error leyendo productos:', error.message);
+    return res.status(500).json({ error: 'No se pudieron leer los productos.' });
   }
 });
 

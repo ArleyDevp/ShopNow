@@ -51,3 +51,6 @@ app.*.map.json
 backend/.env
 
 
+node_modules/
+.neon
+.env.local
