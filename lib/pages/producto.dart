@@ -35,15 +35,19 @@ class _ProductoPageState extends State<ProductoPage> {
   void _agregarAlCarrito() {
     carrito.agregar(widget.producto, cantidad: cantidad);
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
       SnackBar(
+        duration: const Duration(seconds: 3),
         content: const Text('Producto agregado al carrito'),
         backgroundColor: AppColors.success,
         action: SnackBarAction(
           label: 'Ver carrito',
           textColor: Colors.white,
           onPressed: () {
-            Navigator.pushNamed(context, AppRoutes.compras);
+            messenger.clearSnackBars();
+            Navigator.of(context).pushNamed(AppRoutes.compras);
           },
         ),
       ),
@@ -132,10 +136,11 @@ class _ProductoPageState extends State<ProductoPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  producto['descripcion'].toString(),
-                  style: AppText.body,
-                ),
+                if ((producto['descripcion']?.toString() ?? '').isNotEmpty)
+                  Text(
+                    producto['descripcion'].toString(),
+                    style: AppText.body,
+                  ),
                 const SizedBox(height: 24),
                 Text(
                   'Cantidad',
