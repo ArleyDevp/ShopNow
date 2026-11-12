@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_colors.dart';
 import '../core/widgets/shopnow_logo.dart';
+import '../services/auth_service.dart';
 
 class RegistroPage extends StatefulWidget {
   const RegistroPage({super.key});
@@ -42,18 +43,31 @@ class _RegistroPageState extends State<RegistroPage> {
     }
 
     setState(() => _cargando = true);
-    // TODO: conectar con el backend (POST /api/auth/register).
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-    setState(() => _cargando = false);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Cuenta creada. Inicia sesión para continuar.'),
-        backgroundColor: AppColors.success,
-      ),
-    );
-    Navigator.pop(context);
+    try {
+      await AuthService.signUp(
+        _correo.text.trim(),
+        _password.text,
+        _nombre.text.trim(),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cuenta creada. Inicia sesion para continuar.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _cargando = false);
+    }
   }
 
   @override

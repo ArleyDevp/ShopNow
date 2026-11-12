@@ -1,55 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../core/routes/app_routes.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text.dart';
 import '../core/widgets/shopnow_logo.dart';
+import '../services/auth_service.dart';
 import '../state/favoritos_store.dart';
-
-const _productos = [
-  {
-    'nombre': 'Audífonos Bluetooth',
-    'precio': 89900,
-    'categoria': 'Tecnología',
-    'icono': Icons.headphones,
-    'descripcion': 'Audífonos inalámbricos para escuchar música.',
-  },
-  {
-    'nombre': 'Reloj inteligente',
-    'precio': 129900,
-    'categoria': 'Tecnología',
-    'icono': Icons.watch,
-    'descripcion': 'Reloj inteligente para tus actividades diarias.',
-  },
-  {
-    'nombre': 'Mochila urbana',
-    'precio': 74900,
-    'categoria': 'Accesorios',
-    'icono': Icons.backpack,
-    'descripcion': 'Mochila práctica para estudiar y viajar.',
-  },
-  {
-    'nombre': 'Gorra deportiva',
-    'precio': 39900,
-    'categoria': 'Ropa',
-    'icono': Icons.checkroom,
-    'descripcion': 'Gorra cómoda para actividades al aire libre.',
-  },
-  {
-    'nombre': 'Camiseta casual',
-    'precio': 49900,
-    'categoria': 'Ropa',
-    'icono': Icons.dry_cleaning,
-    'descripcion': 'Camiseta para usar todos los días.',
-  },
-  {
-    'nombre': 'Gafas de sol',
-    'precio': 59900,
-    'categoria': 'Accesorios',
-    'icono': Icons.wb_sunny_outlined,
-    'descripcion': 'Gafas de sol con diseño moderno.',
-  },
-];
 
 class CatalogPage extends StatefulWidget {
   const CatalogPage({super.key});
@@ -61,6 +20,46 @@ class CatalogPage extends StatefulWidget {
 class _CatalogPageState extends State<CatalogPage> {
   final _busqueda = TextEditingController();
   String _categoria = 'Todos';
+  List<Map<String, dynamic>> _productos = [];
+  bool _cargandoProductos = true;
+  String _nombreUsuario = 'Usuario';
+
+  @override
+  void initState() {
+    super.initState();
+    _nombreUsuario = AuthService.currentUser?['name']?.toString() ?? 'Usuario';
+    _cargarProductos();
+  }
+
+  Future<void> _cargarProductos() async {
+    for (var intento = 0; intento < 3; intento++) {
+      try {
+        final response = await http.get(Uri.parse('${AuthService.baseUrl}/api/products'));
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          final products = data['products'] as List<dynamic>;
+          if (!mounted) return;
+          setState(() {
+            _productos = products.map((item) {
+              final p = item as Map<String, dynamic>;
+              return <String, dynamic>{
+                'id': p['id'],
+                'nombre': p['name']?.toString() ?? '',
+                'precio': p['priceRetail'] ?? 0,
+                'categoria': 'Productos',
+                'icono': Icons.shopping_bag,
+              };
+            }).toList();
+            _cargandoProductos = false;
+          });
+          return;
+        }
+      } catch (_) {
+        await Future<void>.delayed(const Duration(seconds: 1));
+      }
+    }
+    if (mounted) setState(() => _cargandoProductos = false);
+  }
 
   @override
   void dispose() {
@@ -84,9 +83,7 @@ class _CatalogPageState extends State<CatalogPage> {
   Widget build(BuildContext context) {
     final categorias = [
       ('Todos', '01'),
-      ('Tecnología', '02'),
-      ('Ropa', '03'),
-      ('Accesorios', '04'),
+      ('Productos', '02'),
     ];
 
     final filtrados = _productos.where((producto) {
@@ -135,7 +132,7 @@ class _CatalogPageState extends State<CatalogPage> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         children: [
-          Text('Buenos días, Arley', style: AppText.headline),
+          Text('Buenos días, $_nombreUsuario', style: AppText.headline),
           const SizedBox(height: 4),
           Text('Encuentra tu próximo favorito.', style: AppText.bodyMuted),
           const SizedBox(height: 18),
@@ -163,6 +160,8 @@ class _CatalogPageState extends State<CatalogPage> {
           const SizedBox(height: 18),
           _PromoCard(),
           const SizedBox(height: 22),
+          if (_cargandoProductos)
+            const Center(child: CircularProgressIndicator()),
           Text('Categorías', style: AppText.title),
           const SizedBox(height: 12),
           SizedBox(

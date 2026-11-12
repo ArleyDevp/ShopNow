@@ -36,11 +36,7 @@ class _LoginPageState extends State<LoginPage> {
     final pass = _passwordController.text;
 
     try {
-      if (AuthService.configured) {
-        await AuthService.signIn(email, pass);
-      } else if (email != 'emerson@gmail.com' || pass != 'Arley123') {
-        throw StateError('Correo o contraseña incorrectos.');
-      }
+      await AuthService.signIn(email, pass);
 
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, AppRoutes.home);

@@ -1,60 +1,62 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../core/routes/app_routes.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text.dart';
 import '../core/widgets/primary_button.dart';
+import '../services/auth_service.dart';
 import '../state/favoritos_store.dart';
 
-class FavoritosPage extends StatelessWidget {
+class FavoritosPage extends StatefulWidget {
   const FavoritosPage({super.key, this.onExplorar});
 
   final VoidCallback? onExplorar;
 
-  static const _productos = [
-    {
-      'nombre': 'Audífonos Bluetooth',
-      'precio': 89900,
-      'categoria': 'Tecnología',
-      'icono': Icons.headphones,
-      'descripcion': 'Audífonos inalámbricos para escuchar música.',
-    },
-    {
-      'nombre': 'Reloj inteligente',
-      'precio': 129900,
-      'categoria': 'Tecnología',
-      'icono': Icons.watch,
-      'descripcion': 'Reloj inteligente para tus actividades diarias.',
-    },
-    {
-      'nombre': 'Mochila urbana',
-      'precio': 74900,
-      'categoria': 'Accesorios',
-      'icono': Icons.backpack,
-      'descripcion': 'Mochila práctica para estudiar y viajar.',
-    },
-    {
-      'nombre': 'Gorra deportiva',
-      'precio': 39900,
-      'categoria': 'Ropa',
-      'icono': Icons.checkroom,
-      'descripcion': 'Gorra cómoda para actividades al aire libre.',
-    },
-    {
-      'nombre': 'Camiseta casual',
-      'precio': 49900,
-      'categoria': 'Ropa',
-      'icono': Icons.dry_cleaning,
-      'descripcion': 'Camiseta para usar todos los días.',
-    },
-    {
-      'nombre': 'Gafas de sol',
-      'precio': 59900,
-      'categoria': 'Accesorios',
-      'icono': Icons.wb_sunny_outlined,
-      'descripcion': 'Gafas de sol con diseño moderno.',
-    },
-  ];
+  @override
+  State<FavoritosPage> createState() => _FavoritosPageState();
+}
+
+class _FavoritosPageState extends State<FavoritosPage> {
+  List<Map<String, dynamic>> _productos = [];
+  bool _cargando = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarProductos();
+  }
+
+  Future<void> _cargarProductos() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${AuthService.baseUrl}/api/products'),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final products = data['products'] as List<dynamic>;
+        setState(() {
+          _productos = products.map((item) {
+            final p = item as Map<String, dynamic>;
+            return <String, dynamic>{
+              'id': p['id'],
+              'nombre': p['name']?.toString() ?? '',
+              'precio': p['priceRetail'] ?? 0,
+              'categoria': 'Productos',
+              'icono': Icons.shopping_bag,
+            };
+          }).toList();
+          _cargando = false;
+        });
+      } else {
+        setState(() => _cargando = false);
+      }
+    } catch (_) {
+      setState(() => _cargando = false);
+    }
+  }
 
   Map<String, dynamic>? _buscar(String nombre) {
     for (final p in _productos) {
@@ -89,12 +91,14 @@ class FavoritosPage extends StatelessWidget {
           ],
         ),
       ),
-      body: AnimatedBuilder(
+      body: _cargando
+          ? const Center(child: CircularProgressIndicator())
+          : AnimatedBuilder(
         animation: favoritosStore,
         builder: (context, _) {
           final nombres = favoritosStore.nombres;
           if (nombres.isEmpty) {
-            return _EmptyFavoritos(onExplorar: onExplorar ?? () {});
+            return _EmptyFavoritos(onExplorar: widget.onExplorar ?? () {});
           }
 
           final items = nombres
