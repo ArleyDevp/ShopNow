@@ -4,12 +4,30 @@ import '../core/routes/app_routes.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text.dart';
 import '../core/widgets/shopnow_logo.dart';
+import '../services/auth_service.dart';
 
-class PerfilPage extends StatelessWidget {
+class PerfilPage extends StatefulWidget {
   const PerfilPage({super.key});
 
   @override
+  State<PerfilPage> createState() => _PerfilPageState();
+}
+
+class _PerfilPageState extends State<PerfilPage> {
+  void _abrir(String ruta) {
+    Navigator.pushNamed(context, ruta).then((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final user = AuthService.currentUser;
+    final nombre = user?['name']?.toString() ?? 'Usuario';
+    final email = user?['email']?.toString() ?? '';
+    final iniciales = nombre.isNotEmpty
+        ? nombre.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join()
+        : 'U';
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -42,9 +60,9 @@ class PerfilPage extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
-                  child: const Text(
-                    'AL',
-                    style: TextStyle(
+                  child: Text(
+                    iniciales.toUpperCase(),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
@@ -56,9 +74,9 @@ class PerfilPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Arley Ladino', style: AppText.title),
+                      Text(nombre, style: AppText.title),
                       const SizedBox(height: 2),
-                      Text('emerson@gmail.com', style: AppText.small),
+                      Text(email, style: AppText.small),
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -82,7 +100,7 @@ class PerfilPage extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  onPressed: () {},
+                  onPressed: () => _abrir('/editar-perfil'),
                   icon: const Icon(
                     Icons.edit_outlined,
                     color: AppColors.textMuted,
@@ -97,28 +115,30 @@ class PerfilPage extends StatelessWidget {
           _MenuItem(
             icon: Icons.receipt_long_outlined,
             label: 'Mis compras',
-            onTap: () {},
+            onTap: () => _abrir(AppRoutes.compras),
           ),
           _MenuItem(
             icon: Icons.location_on_outlined,
             label: 'Direcciones',
-            onTap: () {},
+            onTap: () => _abrir('/direcciones'),
           ),
           _MenuItem(
             icon: Icons.credit_card_outlined,
             label: 'Métodos de pago',
-            onTap: () {},
+            onTap: () => _abrir('/metodos-pago'),
           ),
           _MenuItem(
             icon: Icons.help_outline_rounded,
             label: 'Ayuda',
-            onTap: () {},
+            onTap: () => _abrir('/ayuda'),
           ),
           const SizedBox(height: 22),
           SizedBox(
             height: 54,
             child: OutlinedButton.icon(
-              onPressed: () {
+              onPressed: () async {
+                await AuthService.signOut();
+                if (!context.mounted) return;
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   AppRoutes.login,
