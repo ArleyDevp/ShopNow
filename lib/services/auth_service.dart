@@ -1,68 +1,133 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  static SupabaseClient? _client;
-  static bool _initialized = false;
-  static const _url = String.fromEnvironment('SUPABASE_URL');
-  static const _key = String.fromEnvironment('SUPABASE_ANON_KEY');
+  static String get _baseUrl {
+    const override = String.fromEnvironment('API_URL');
+    if (override.isNotEmpty) return override;
+    if (Platform.isAndroid) return 'http://10.0.2.2:3000';
+    return 'http://localhost:3000';
+  }
+  static const _tokenKey = 'neon_session_token';
 
-  static bool get hasConfiguration => _url.isNotEmpty || _key.isNotEmpty;
+  static String? _token;
+  static Map<String, dynamic>? _currentUser;
+  static bool _initialized = false;
+
+  static bool get hasConfiguration => true;
+  static bool get isLoggedIn => _token != null;
+  static Map<String, dynamic>? get currentUser => _currentUser;
+  static String get baseUrl => _baseUrl;
 
   static Future<void> init() async {
     if (_initialized) return;
-
-    if (_url.isEmpty || _key.isEmpty) {
-      throw StateError(
-        'Configura SUPABASE_URL y SUPABASE_ANON_KEY con --dart-define.',
-      );
-    }
-
-    await Supabase.initialize(url: _url, publishableKey: _key);
-
-    _client = Supabase.instance.client;
+    final prefs = await SharedPreferences.getInstance();
+    _token = prefs.getString(_tokenKey);
     _initialized = true;
+    if (_token != null) {
+      await refreshUser();
+    }
   }
 
-  static bool get configured => _initialized;
-  static SupabaseClient get client => _client!;
-  static User? get currentUser =>
-      _initialized ? _client!.auth.currentUser : null;
-  static Stream<AuthState> get authState =>
-      _initialized ? _client!.auth.onAuthStateChange : const Stream.empty();
+  static bool get configured => true;
+
+  static String? get currentToken => _token;
+
+  static Map<String, String> get _headers => {
+        'Content-Type': 'application/json',
+        if (_token != null) 'Cookie': '__Secure-neon-auth.session_token=$_token',
+      };
+
+  static Future<void> _saveToken(String? token) async {
+    _token = token;
+    final prefs = await SharedPreferences.getInstance();
+    if (token == null) {
+      await prefs.remove(_tokenKey);
+    } else {
+      await prefs.setString(_tokenKey, token);
+    }
+  }
 
   static Future<void> signIn(String email, String password) async {
-    if (!_initialized) {
-      throw StateError('Supabase no configurado con --dart-define.');
+    final response = await http.post(
+      Uri.parse('$_baseUrl/api/auth/neon/signin'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'password': password}),
+    );
+    if (response.statusCode != 200) {
+      throw StateError(_errorMessage(response));
     }
-    await _client!.auth.signInWithPassword(email: email, password: password);
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    await _saveToken(data['sessionToken'] as String?);
+    _currentUser = data['usuario'] as Map<String, dynamic>?;
   }
 
   static Future<void> signUp(String email, String password, String name) async {
-    if (!_initialized) {
-      throw StateError('Supabase no configurado con --dart-define.');
-    }
-    await _client!.auth.signUp(
-      email: email,
-      password: password,
-      data: {'full_name': name},
+    final response = await http.post(
+      Uri.parse('$_baseUrl/api/auth/neon/signup'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'password': password, 'name': name}),
     );
-  }
-
-  static Future<void> resetPassword(String email) async {
-    if (!_initialized) {
-      throw StateError('Supabase no configurado con --dart-define.');
+    if (response.statusCode != 201) {
+      throw StateError(_errorMessage(response));
     }
-    await _client!.auth.resetPasswordForEmail(email);
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    await _saveToken(data['sessionToken'] as String?);
+    _currentUser = data['usuario'] as Map<String, dynamic>?;
   }
 
   static Future<void> signOut() async {
-    if (_initialized) await _client!.auth.signOut();
+    await _saveToken(null);
+    _currentUser = null;
   }
 
-  static Future<void> signInWithGoogle() async {
-    if (!_initialized) {
-      throw StateError('Supabase no configurado con --dart-define.');
+  static Future<void> updateName(String name) async {
+    if (_token == null) {
+      throw StateError('No hay sesion activa.');
     }
-    await _client!.auth.signInWithOAuth(OAuthProvider.google);
+    final response = await http.post(
+      Uri.parse('$_baseUrl/api/auth/neon/update-user'),
+      headers: _headers,
+      body: jsonEncode({'name': name}),
+    );
+    if (response.statusCode != 200) {
+      throw StateError(_errorMessage(response));
+    }
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    _currentUser = data['usuario'] as Map<String, dynamic>?;
+  }
+
+  static Future<void> refreshUser() async {
+    if (_token == null) {
+      _currentUser = null;
+      return;
+    }
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/auth/neon/me'),
+        headers: _headers,
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        _currentUser = data['usuario'] as Map<String, dynamic>?;
+      } else {
+        await _saveToken(null);
+        _currentUser = null;
+      }
+    } catch (_) {
+      _currentUser = null;
+    }
+  }
+
+  static String _errorMessage(http.Response response) {
+    try {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return data['error']?.toString() ?? 'Error de autenticacion.';
+    } catch (_) {
+      return 'Error de autenticacion.';
+    }
   }
 }
