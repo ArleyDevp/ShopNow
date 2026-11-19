@@ -1,7 +1,5 @@
- import 'dart:io';
-
+ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 import 'core/routes/app_routes.dart';
 import 'pages/ayuda.dart';
@@ -19,6 +17,7 @@ import 'pages/recuperar_password.dart';
 import 'pages/reset_password.dart';
 import 'pages/main_shell.dart';
 import 'pages/compras.dart';
+import 'platform/start_backend.dart';
 
 final cartService = CartService();
 final favoritesService = FavoritesService();
@@ -26,38 +25,10 @@ final favoritesService = FavoritesService();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AuthService.init();
-  await _iniciarBackend();
+  if (!kIsWeb) {
+    await startBackend();
+  }
   runApp(const MainApp());
-}
-
-Future<void> _iniciarBackend() async {
-  if (!Platform.isWindows) return;
-
-  try {
-    final ping = await http
-        .get(Uri.parse('http://localhost:3000/'))
-        .timeout(const Duration(seconds: 2));
-    if (ping.statusCode == 200) return;
-  } catch (_) {
-    // backend no responde, se intenta arrancar
-  }
-
-  var dir = Directory.current;
-  for (var i = 0; i < 3; i++) {
-    if (File('${dir.path}/backend/index.js').existsSync()) {
-      try {
-        await Process.start(
-          'node',
-          ['index.js'],
-          workingDirectory: '${dir.path}/backend',
-          mode: ProcessStartMode.detached,
-        );
-        await Future<void>.delayed(const Duration(seconds: 2));
-      } catch (_) {}
-      return;
-    }
-    dir = dir.parent;
-  }
 }
 
 class MainApp extends StatelessWidget {
