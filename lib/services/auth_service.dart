@@ -79,6 +79,30 @@ class AuthService {
     _currentUser = data['usuario'] as Map<String, dynamic>?;
   }
 
+  static Future<void> forgotPassword(String email) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/api/auth/neon/forgot-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
+    if (response.statusCode != 200) {
+      final msg = _errorMessage(response);
+      throw Exception(msg);
+    }
+  }
+
+  static Future<void> resetPassword(String token, String newPassword) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/api/auth/neon/reset-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'token': token, 'newPassword': newPassword}),
+    );
+    if (response.statusCode != 200) {
+      final msg = _errorMessage(response);
+      throw Exception(msg);
+    }
+  }
+
   static Future<void> signOut() async {
     await _saveToken(null);
     _currentUser = null;

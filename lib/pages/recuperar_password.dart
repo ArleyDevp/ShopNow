@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
 import '../core/widgets/shopnow_logo.dart';
+import '../services/auth_service.dart';
 
 class RecuperarPasswordPage extends StatefulWidget {
   const RecuperarPasswordPage({super.key});
@@ -25,13 +26,20 @@ class _RecuperarPasswordPageState
   Future<void> _recuperarPassword() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _cargando = true);
-    // TODO: conectar con el backend (POST /api/auth/forgot-password).
-    await Future.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-    setState(() {
-      _cargando = false;
-      _solicitudEnviada = true;
-    });
+    try {
+      await AuthService.forgotPassword(_correoController.text.trim());
+      if (!mounted) return;
+      setState(() {
+        _cargando = false;
+        _solicitudEnviada = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _cargando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo enviar el enlace: $e'), backgroundColor: AppColors.danger),
+      );
+    }
   }
 
   @override

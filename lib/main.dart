@@ -16,6 +16,7 @@ import 'services/favorites_service.dart';
 import 'pages/login.dart';
 import 'pages/registro.dart';
 import 'pages/recuperar_password.dart';
+import 'pages/reset_password.dart';
 import 'pages/main_shell.dart';
 import 'pages/compras.dart';
 
@@ -72,6 +73,7 @@ class MainApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/registro': (context) => const RegistroPage(),
         '/recuperar-password': (context) => const RecuperarPasswordPage(),
+        '/reset-password': (context) => const ResetPasswordPage(),
         '/home': (context) => const MainShell(),
       },
       onGenerateRoute: (settings) {

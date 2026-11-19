@@ -1,4 +1,4 @@
-import { signUpWithEmail, signInWithEmail, readCurrentUser, updateUserProfile } from './neonAuth.mjs';
+import { signUpWithEmail, signInWithEmail, readCurrentUser, updateUserProfile, requestPasswordReset, resetPassword } from './neonAuth.mjs';
 
 function getCookie(req, name) {
   const header = req.headers.cookie || '';
@@ -100,6 +100,24 @@ export async function neonMe(req, res) {
       name: user.name
     }
   });
+}
+
+export async function neonForgotPassword(req, res) {
+  const { email, correo, redirectTo } = req.body || {};
+  const emailFinal = String(email || correo || '').trim().toLowerCase();
+  if (!emailFinal) return res.status(400).json({ error: 'Email es obligatorio.' });
+  const origin = req.headers.origin || `http://${req.headers.host || 'localhost:3000'}`;
+  await requestPasswordReset({ email: emailFinal, redirectTo: redirectTo || origin });
+  return res.json({ ok: true, message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.' });
+}
+
+export async function neonResetPassword(req, res) {
+  const { token, newPassword, password } = req.body || {};
+  const newPass = String(newPassword || password || '');
+  if (!token) return res.status(400).json({ error: 'Token es obligatorio.' });
+  if (newPass.length < 8) return res.status(400).json({ error: 'La contraseña debe tener mínimo 8 caracteres.' });
+  await resetPassword({ token, newPassword: newPass });
+  return res.json({ ok: true, message: 'Contraseña restablecida correctamente.' });
 }
 
 export async function neonUpdateUser(req, res) {

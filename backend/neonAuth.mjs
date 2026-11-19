@@ -80,6 +80,28 @@ export async function readCurrentUser({ sessionCookie, origin }) {
   return data?.user || null;
 }
 
+export async function requestPasswordReset({ email, redirectTo }) {
+  const base = baseUrl();
+  const auth = createAuthClient(base, {
+    adapter: BetterAuthVanillaAdapter({
+      fetchOptions: { headers: { Origin: redirectTo || 'http://localhost:3000' } }
+    })
+  });
+  const { data, error } = await auth.requestPasswordReset({ email, redirectTo });
+  if (error) throw new Error(error.message || 'Request password reset failed');
+  return data;
+}
+
+export async function resetPassword({ token, newPassword }) {
+  const base = baseUrl();
+  const auth = createAuthClient(base, {
+    adapter: BetterAuthVanillaAdapter()
+  });
+  const { data, error } = await auth.resetPassword({ token, newPassword });
+  if (error) throw new Error(error.message || 'Reset password failed');
+  return data;
+}
+
 export async function updateUserProfile({ sessionCookie, name, origin }) {
   const base = baseUrl();
   const resolvedOrigin = origin || 'http://localhost:3000';

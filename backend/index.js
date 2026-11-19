@@ -388,6 +388,26 @@ app.post('/api/auth/neon/update-user', async (req, res) => {
   }
 });
 
+app.post('/api/auth/neon/forgot-password', async (req, res) => {
+  try {
+    const { neonForgotPassword } = await import('./neonAuthRoute.mjs');
+    return await neonForgotPassword(req, res);
+  } catch (error) {
+    console.error('Error forgot password:', error.message);
+    return res.status(500).json({ error: 'No se pudo solicitar el restablecimiento.' });
+  }
+});
+
+app.post('/api/auth/neon/reset-password', async (req, res) => {
+  try {
+    const { neonResetPassword } = await import('./neonAuthRoute.mjs');
+    return await neonResetPassword(req, res);
+  } catch (error) {
+    console.error('Error reset password:', error.message);
+    return res.status(500).json({ error: 'No se pudo restablecer la contraseña: ' + (error.message || '') });
+  }
+});
+
 app.get('/api/auth/neon/me', async (req, res) => {
   try {
     const { neonMe } = await import('./neonAuthRoute.mjs');
