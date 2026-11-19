@@ -58,7 +58,10 @@ class AuthService {
       body: jsonEncode({'email': email, 'password': password}),
     );
     if (response.statusCode != 200) {
-      throw StateError(_errorMessage(response));
+      final msg = _errorMessage(response);
+      // ignore: avoid_print
+      print('Neon request failed: status=${response.statusCode} body=${response.body}');
+      throw Exception(msg);
     }
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     await _saveToken(data['sessionToken'] as String?);
@@ -72,9 +75,19 @@ class AuthService {
       body: jsonEncode({'email': email, 'password': password, 'name': name}),
     );
     if (response.statusCode != 201) {
-      throw StateError(_errorMessage(response));
+      final msg = _errorMessage(response);
+      // ignore: avoid_print
+      print('Neon signup failed: status=${response.statusCode} body=${response.body}');
+      throw Exception(msg);
     }
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    Map<String, dynamic> data;
+    try {
+      data = jsonDecode(response.body) as Map<String, dynamic>;
+    } catch (e) {
+      // ignore: avoid_print
+      print('Neon signup parse error: $e body=${response.body}');
+      throw Exception('Respuesta invalida del servidor.');
+    }
     await _saveToken(data['sessionToken'] as String?);
     _currentUser = data['usuario'] as Map<String, dynamic>?;
   }
@@ -86,7 +99,7 @@ class AuthService {
 
   static Future<void> updateName(String name) async {
     if (_token == null) {
-      throw StateError('No hay sesion activa.');
+      throw Exception('No hay sesion activa.');
     }
     final response = await http.post(
       Uri.parse('$_baseUrl/api/auth/neon/update-user'),
@@ -94,7 +107,10 @@ class AuthService {
       body: jsonEncode({'name': name}),
     );
     if (response.statusCode != 200) {
-      throw StateError(_errorMessage(response));
+      final msg = _errorMessage(response);
+      // ignore: avoid_print
+      print('Neon request failed: status=${response.statusCode} body=${response.body}');
+      throw Exception(msg);
     }
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     _currentUser = data['usuario'] as Map<String, dynamic>?;

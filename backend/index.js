@@ -362,8 +362,9 @@ app.post('/api/auth/neon/signup', async (req, res) => {
     const result = await neonSignUp(req, res);
     return result;
   } catch (error) {
-    console.error('Error en Neon signup:', error.message);
-    return res.status(500).json({ error: 'No se pudo completar el registro con Neon Auth.' });
+    console.error('Error en Neon signup:', error && error.stack ? error.stack : error);
+    const detail = error && error.message ? error.message : String(error);
+    return res.status(500).json({ error: 'No se pudo completar el registro con Neon Auth: ' + detail });
   }
 });
 
