@@ -116,7 +116,7 @@ export async function neonResetPassword(req, res) {
   const { token, newPassword, password } = req.body || {};
   const newPass = String(newPassword || password || '');
   if (!token) return res.status(400).json({ error: 'Token es obligatorio.' });
-  if (newPass.length < 8) return res.status(400).json({ error: 'La contraseña debe tener mínimo 8 caracteres.' });
+  if (newPass.length < 8) return res.status(400).json({ error: 'La contrasena debe tener mínimo 8 caracteres.' });
   await resetPassword({ token, newPassword: newPass });
   return res.json({ ok: true, message: 'Contraseña restablecida correctamente.' });
 }

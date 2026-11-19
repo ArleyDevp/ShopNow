@@ -1,6 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,7 +7,9 @@ class AuthService {
   static String get _baseUrl {
     const override = String.fromEnvironment('API_URL');
     if (override.isNotEmpty) return override;
-    if (Platform.isAndroid) return 'http://10.0.2.2:3000';
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:3000';
+    }
     return 'http://localhost:3000';
   }
   static const _tokenKey = 'neon_session_token';
