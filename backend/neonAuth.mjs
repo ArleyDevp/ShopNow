@@ -94,8 +94,11 @@ export async function requestPasswordReset({ email, redirectTo }) {
 
 export async function resetPassword({ token, newPassword }) {
   const base = baseUrl();
+  const origin = process.env.APP_URL || process.env.BACKEND_URL || 'http://localhost:3000';
   const auth = createAuthClient(base, {
-    adapter: BetterAuthVanillaAdapter()
+    adapter: BetterAuthVanillaAdapter({
+      fetchOptions: { headers: { Origin: origin } }
+    })
   });
   const { data, error } = await auth.resetPassword({ token, newPassword });
   if (error) throw new Error(error.message || 'Reset password failed');

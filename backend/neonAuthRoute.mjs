@@ -107,7 +107,8 @@ export async function neonForgotPassword(req, res) {
   const emailFinal = String(email || correo || '').trim().toLowerCase();
   if (!emailFinal) return res.status(400).json({ error: 'Email es obligatorio.' });
   const origin = req.headers.origin || `http://${req.headers.host || 'localhost:3000'}`;
-  await requestPasswordReset({ email: emailFinal, redirectTo: redirectTo || origin });
+  const resetUrl = redirectTo || (origin.replace(/\/$/, '') + '/reset-password');
+  await requestPasswordReset({ email: emailFinal, redirectTo: resetUrl });
   return res.json({ ok: true, message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.' });
 }
 

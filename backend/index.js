@@ -418,6 +418,60 @@ app.get('/api/auth/neon/me', async (req, res) => {
   }
 });
 
+app.get('/reset-password', (req, res) => {
+  const token = req.query.token || '';
+  res.send(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Restablecer contraseña</title>
+<style>
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f4f6f8;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}
+.card{background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:32px;max-width:420px;width:100%}
+h1{margin:0 0 8px;font-size:22px;color:#122630}
+p{color:#555;font-size:14px;margin:0 0 20px}
+label{display:block;font-size:13px;font-weight:600;color:#555;margin:12px 0 6px}
+.input-wrap{position:relative}
+input{width:100%;padding:12px 44px 12px 12px;border:1px solid #ddd;border-radius:10px;font-size:15px;box-sizing:border-box}
+input:focus{outline:none;border-color:#f26b5b}
+.toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#888;font-size:18px}
+button.primary{width:100%;padding:14px;border:none;border-radius:10px;background:#f26b5b;color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:18px}
+button.primary:disabled{opacity:.6;cursor:not-allowed}
+.msg{margin-top:16px;padding:12px 14px;border-radius:10px;font-size:14px;display:none}
+.msg.error{display:block;background:#fdecea;color:#b00020}
+.msg.success{display:block;background:#e8f5e9;color:#1b5e20}
+.req{font-size:12px;color:#888;margin-top:8px}
+</style></head><body>
+<div class="card">
+  <h1>Restablecer contraseña</h1>
+  <p>Ingresa y confirma tu nueva contraseña para volver a iniciar sesión.</p>
+  <form id="f">
+    <input type="hidden" id="token" value="${token}">
+    <label for="p">Nueva contraseña</label>
+    <div class="input-wrap"><input type="password" id="p" required minlength="8"><button type="button" class="toggle" data-target="p">👁</button></div>
+    <div class="req">Mínimo 8 caracteres, una mayúscula, una minúscula y un número.</div>
+    <label for="c">Confirmar contraseña</label>
+    <div class="input-wrap"><input type="password" id="c" required minlength="8"><button type="button" class="toggle" data-target="c">👁</button></div>
+    <button type="submit" class="primary" id="btn">Guardar</button>
+  </form>
+  <div id="msg" class="msg"></div>
+</div>
+<script>
+document.querySelectorAll('.toggle').forEach(b=>b.addEventListener('click',()=>{const i=document.getElementById(b.dataset.target);i.type=i.type==='password'?'text':'password';}));
+const form=document.getElementById('f'),btn=document.getElementById('btn'),msg=document.getElementById('msg');
+form.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const t=document.getElementById('token').value,p=document.getElementById('p').value,c=document.getElementById('c').value;
+  if(p!==c){msg.className='msg error';msg.textContent='Las contraseñas no coinciden.';return;}
+  if(!/[A-Z]/.test(p)||!/[a-z]/.test(p)||!/[0-9]/.test(p)||p.length<8){msg.className='msg error';msg.textContent='La contraseña no cumple los requisitos mínimos.';return;}
+  btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    const r=await fetch('/api/auth/neon/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t,newPassword:p})});
+    const d=await r.json();
+    if(r.ok){msg.className='msg success';msg.textContent='¡Listo! Tu contraseña se cambió correctamente. Ya puedes volver a la aplicación e iniciar sesión con tu nueva contraseña.';form.style.display='none';}
+    else{msg.className='msg error';msg.textContent=d.error||'No se pudo restablecer la contraseña.';}
+  }catch(err){msg.className='msg error';msg.textContent='Error de conexión.';}
+  btn.disabled=false;btn.textContent='Guardar';
+});
+</script></body></html>`);
+});
+
 app.get('/api/products', async (req, res) => {
   try {
     const { fetchProducts } = await import('./neonProducts.mjs');
