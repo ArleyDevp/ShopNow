@@ -1,5 +1,4 @@
- import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
 
 import 'core/routes/app_routes.dart';
 import 'pages/ayuda.dart';
@@ -17,7 +16,7 @@ import 'pages/recuperar_password.dart';
 import 'pages/reset_password.dart';
 import 'pages/main_shell.dart';
 import 'pages/compras.dart';
-import 'platform/start_backend.dart';
+
 
 final cartService = CartService();
 final favoritesService = FavoritesService();
@@ -25,9 +24,7 @@ final favoritesService = FavoritesService();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AuthService.init();
-  if (!kIsWeb) {
-    await startBackend();
-  }
+  // Backend (Node.js) se ejecuta por separado.
   runApp(const MainApp());
 }
 
